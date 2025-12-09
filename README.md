@@ -1,33 +1,39 @@
 # ro
 
-Real-time command output viewer. Execute shell commands as you type and see the output instantly.
+Real-time command output viewer. Execute shell commands as you type in an interactive shell.
 
 ## Features
 
-- **Live preview**: Output updates as you type
-- **Minimal interface**: One input line at the bottom, all output above
+- **Live execution**: Commands run as you type
+- **Full shell support**: Aliases, functions, and shell state work
+- **Minimal interface**: Top pane shows output, bottom line is input
 - **History**: Navigate previous commands with Alt-Up/Down
-- **ANSI colors**: Full color support for command output
 
 ## Installation
 
 ```bash
-pip install -e .
-```
-
-Or with uv:
-
-```bash
-uv pip install -e .
+uv sync
 ```
 
 ## Usage
 
+Must be run inside tmux:
+
 ```bash
-ro                    # Start with empty prompt
-ro ls -la             # Start with initial command
-ro "cat /etc/hosts"   # Commands with spaces
+uv run ro                    # Start with empty prompt
+uv run ro ls -la             # Start with initial command
+uv run ro "cat /etc/hosts"   # Commands with spaces
 ```
+
+## How it works
+
+`ro` creates a tmux split:
+- **Top pane (90%)**: Interactive shell showing command output
+- **Bottom pane (10%)**: fzf-based input line
+
+As you type, commands are sent to the top pane and executed. Your shell aliases and functions work because it's a real interactive shell.
+
+When you exit (Enter/Esc/Ctrl-C), the shell pane is killed.
 
 ## Key Bindings
 
@@ -45,13 +51,6 @@ ro "cat /etc/hosts"   # Commands with spaces
 
 ## Requirements
 
+- [tmux](https://github.com/tmux/tmux)
 - [fzf](https://github.com/junegunn/fzf) (0.30+)
 - Python 3.8+
-
-## How it works
-
-`ro` uses fzf's preview window feature to display command output. The preview window is configured to take up 99% of the terminal, leaving just one line at the bottom for input. Commands are executed via `eval` on each keystroke.
-
-**Note**: This tool executes arbitrary shell commands. While intended for read-only exploration, use with caution.
-
-

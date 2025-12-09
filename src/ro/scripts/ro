@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-ro - Real-time command output viewer.
+ro - Real-time command output viewer with tmux integration.
 
-Execute shell commands as you type and see the output instantly.
-The entire terminal is used for output, with just a single input line at the bottom.
+Execute shell commands as you type in an interactive shell with aliases.
+Creates a tmux split: top pane shows output, bottom pane is the input line.
 
 Usage: ro [initial command]
 
 Key bindings:
-  Enter       - Exit
+  Enter       - Exit (kills the shell pane)
   Ctrl-C/Esc  - Abort
   Alt-Up/Down - Navigate history
   Ctrl-K      - Clear to end of line
@@ -16,6 +16,7 @@ Key bindings:
   Ctrl-W      - Delete word backward
 """
 
+import os
 import shlex
 import subprocess
 import sys
@@ -25,65 +26,68 @@ HISTORY_FILE = Path.home() / ".ro_history"
 
 
 def main() -> None:
+    if not os.environ.get("TMUX"):
+        print("Error: ro requires tmux", file=sys.stderr)
+        sys.exit(1)
+
     initial_query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else ""
+    shell = os.environ.get("SHELL", "/bin/zsh")
 
-    fzf_cmd = build_fzf_command(initial_query)
-    fzf_cmd_str = " ".join(shlex.quote(arg) for arg in fzf_cmd)
+    # Split window: create shell pane above (90% of height)
+    # -b: create pane before (above) current
+    # -l 90%: give it 90% of the space
+    # -P -F: print the new pane's ID
+    output_pane = subprocess.check_output(
+        ["tmux", "split-window", "-b", "-l", "90%", "-P", "-F", "#{pane_id}", shell],
+        text=True,
+    ).strip()
 
-    # Feed empty input to fzf - we use the preview window for all output
-    sys.exit(subprocess.call(f'echo "" | {fzf_cmd_str}', shell=True, executable="/bin/bash"))
+    # Command to send to the shell pane on each change:
+    # C-c: interrupt any running command
+    # C-u: clear the input line
+    # C-l: clear the screen
+    # -l {q}: send query literally (handles special chars)
+    # Enter: execute
+    send_cmd = (
+        f"tmux send-keys -t {output_pane} C-c C-u C-l && "
+        f"tmux send-keys -t {output_pane} -l {{q}} && "
+        f"tmux send-keys -t {output_pane} Enter"
+    )
 
-
-def build_fzf_command(initial_query: str) -> list[str]:
-    """Build the fzf command with all options."""
-
-    # The preview command: execute the query as a shell command
-    # We use eval to handle complex commands with pipes, redirects, etc.
-    preview_cmd = "eval {q} 2>&1"
-
-    cmd = [
+    fzf_cmd = [
         "fzf",
-        # Disable filtering - we're executing commands, not searching
         "--disabled",
-        # Use full terminal height
         "--height", "100%",
-        # Input at bottom, output above
         "--layout", "reverse",
-        # Hide info line and separator - we want minimal chrome
         "--info", "hidden",
         "--no-separator",
-        # Shell-like prompt
         "--prompt", "$ ",
-        # Process ANSI color codes in output
         "--ansi",
-        # Preview window: takes almost all space, at top, with bottom border
-        # wrap: wrap long lines
-        # follow: auto-scroll to bottom (like tail -f)
-        "--preview-window", "up,99%,border-bottom,wrap,follow",
-        # The preview command executes our query
-        "--preview", preview_cmd,
-        # Refresh preview on start (for initial query) and on every change
-        "--bind", "start:refresh-preview",
-        "--bind", "change:refresh-preview",
-        # Standard line editing bindings
+        # Execute command in shell pane on start and on each change
+        "--bind", f"start:execute-silent:{send_cmd}",
+        "--bind", f"change:execute-silent:{send_cmd}",
+        # History
+        "--history", str(HISTORY_FILE),
+        "--bind", "alt-up:prev-history",
+        "--bind", "alt-down:next-history",
+        # Line editing
         "--bind", "ctrl-k:kill-line",
         "--bind", "ctrl-u:unix-line-discard",
         "--bind", "ctrl-w:unix-word-rubout",
         "--bind", "alt-right:forward-word",
         "--bind", "alt-left:backward-word",
-        # History navigation
-        "--history", str(HISTORY_FILE),
-        "--bind", "alt-up:prev-history",
-        "--bind", "alt-down:next-history",
     ]
 
     if initial_query:
-        cmd.extend(["--query", initial_query])
+        fzf_cmd.extend(["--query", initial_query])
 
-    return cmd
+    try:
+        fzf_cmd_str = " ".join(shlex.quote(arg) for arg in fzf_cmd)
+        subprocess.call(f'echo "" | {fzf_cmd_str}', shell=True, executable="/bin/bash")
+    finally:
+        # Kill the shell pane we created
+        subprocess.run(["tmux", "kill-pane", "-t", output_pane], check=False)
 
 
 if __name__ == "__main__":
     main()
-
-
