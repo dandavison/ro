@@ -44,10 +44,11 @@ def main() -> None:
     # -l 90%: give it 90% of the space
     # -P -F: print the new pane's ID
     # Run shell inside sandbox-exec to prevent file writes
+    # Shell needs -i (interactive) to source zshrc/bashrc
     output_pane = subprocess.check_output(
         [
             "tmux", "split-window", "-b", "-l", "90%", "-P", "-F", "#{pane_id}",
-            "sandbox-exec", "-p", SANDBOX_POLICY, shell,
+            "sandbox-exec", "-p", SANDBOX_POLICY, shell, "-i",
         ],
         text=True,
     ).strip()
