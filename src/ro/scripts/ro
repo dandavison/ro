@@ -83,8 +83,12 @@ def main() -> None:
 
     # Command for initial startup - includes delay to let shell fully initialize
     # (zshrc sourcing takes time, prompt setup and alias definitions need to complete)
+    # Note: no C-l here so startup errors remain visible for debugging
     start_cmd = (
-        f"sleep 0.5 && {send_cmd}"
+        f"sleep 1.0 && "
+        f"tmux send-keys -t {output_pane} C-c C-u && "
+        f"tmux send-keys -t {output_pane} -l {{q}} && "
+        f"tmux send-keys -t {output_pane} Enter"
     )
 
     fzf_cmd = [
