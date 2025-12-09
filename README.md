@@ -33,6 +33,8 @@ uv run ro "cat /etc/hosts"   # Commands with spaces
 
 As you type, commands are sent to the top pane and executed. Your shell aliases and functions work because it's a real interactive shell.
 
+**Safety**: The shell runs inside macOS `sandbox-exec` with file writes denied. This protects against accidental damage since commands execute on every keystroke. Some tools that write files (like shell history, atuin) won't work inside the sandbox.
+
 When you exit (Enter/Esc/Ctrl-C), the shell pane is killed.
 
 ## Key Bindings

@@ -5,6 +5,9 @@ ro - Real-time command output viewer with tmux integration.
 Execute shell commands as you type in an interactive shell with aliases.
 Creates a tmux split: top pane shows output, bottom pane is the input line.
 
+The shell runs inside macOS sandbox-exec with file writes denied for safety,
+since commands execute on every keystroke.
+
 Usage: ro [initial command]
 
 Key bindings:
@@ -24,6 +27,9 @@ from pathlib import Path
 
 HISTORY_FILE = Path.home() / ".ro_history"
 
+# macOS sandbox policy: allow everything except file writes
+SANDBOX_POLICY = "(version 1)(allow default)(deny file-write*)"
+
 
 def main() -> None:
     if not os.environ.get("TMUX"):
@@ -37,8 +43,12 @@ def main() -> None:
     # -b: create pane before (above) current
     # -l 90%: give it 90% of the space
     # -P -F: print the new pane's ID
+    # Run shell inside sandbox-exec to prevent file writes
     output_pane = subprocess.check_output(
-        ["tmux", "split-window", "-b", "-l", "90%", "-P", "-F", "#{pane_id}", shell],
+        [
+            "tmux", "split-window", "-b", "-l", "90%", "-P", "-F", "#{pane_id}",
+            "sandbox-exec", "-p", SANDBOX_POLICY, shell,
+        ],
         text=True,
     ).strip()
 
