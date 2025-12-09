@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""
+ro - Real-time command output viewer.
+
+Execute shell commands as you type and see the output instantly.
+The entire terminal is used for output, with just a single input line at the bottom.
+
+Usage: ro [initial command]
+
+Key bindings:
+  Enter       - Exit
+  Ctrl-C/Esc  - Abort
+  Alt-Up/Down - Navigate history
+  Ctrl-K      - Clear to end of line
+  Ctrl-U      - Clear to start of line
+  Ctrl-W      - Delete word backward
+"""
+
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+HISTORY_FILE = Path.home() / ".ro_history"
+
+
+def main() -> None:
+    initial_query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else ""
+
+    fzf_cmd = build_fzf_command(initial_query)
+    fzf_cmd_str = " ".join(shlex.quote(arg) for arg in fzf_cmd)
+
+    # Feed empty input to fzf - we use the preview window for all output
+    sys.exit(subprocess.call(f'echo "" | {fzf_cmd_str}', shell=True, executable="/bin/bash"))
+
+
+def build_fzf_command(initial_query: str) -> list[str]:
+    """Build the fzf command with all options."""
+
+    # The preview command: execute the query as a shell command
+    # We use eval to handle complex commands with pipes, redirects, etc.
+    preview_cmd = "eval {q} 2>&1"
+
+    cmd = [
+        "fzf",
+        # Disable filtering - we're executing commands, not searching
+        "--disabled",
+        # Use full terminal height
+        "--height", "100%",
+        # Input at bottom, output above
+        "--layout", "reverse",
+        # Hide info line and separator - we want minimal chrome
+        "--info", "hidden",
+        "--no-separator",
+        # Shell-like prompt
+        "--prompt", "$ ",
+        # Process ANSI color codes in output
+        "--ansi",
+        # Preview window: takes almost all space, at top, with bottom border
+        # wrap: wrap long lines
+        # follow: auto-scroll to bottom (like tail -f)
+        "--preview-window", "up,99%,border-bottom,wrap,follow",
+        # The preview command executes our query
+        "--preview", preview_cmd,
+        # Refresh preview on start (for initial query) and on every change
+        "--bind", "start:refresh-preview",
+        "--bind", "change:refresh-preview",
+        # Standard line editing bindings
+        "--bind", "ctrl-k:kill-line",
+        "--bind", "ctrl-u:unix-line-discard",
+        "--bind", "ctrl-w:unix-word-rubout",
+        "--bind", "alt-right:forward-word",
+        "--bind", "alt-left:backward-word",
+        # History navigation
+        "--history", str(HISTORY_FILE),
+        "--bind", "alt-up:prev-history",
+        "--bind", "alt-down:next-history",
+    ]
+
+    if initial_query:
+        cmd.extend(["--query", initial_query])
+
+    return cmd
+
+
+if __name__ == "__main__":
+    main()
+
+

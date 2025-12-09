@@ -1,0 +1,68 @@
+[project]
+name = "ro"
+version = "0.1.0"
+description = "Real-time command output viewer - execute shell commands as you type"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = []
+authors = [
+    { name = "Dan Davison", email = "dandavison7@gmail.com" }
+]
+keywords = ["fzf", "shell", "interactive", "command", "preview", "terminal"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Shells",
+    "Topic :: Utilities",
+]
+
+[project.scripts]
+ro = "ro.cli:main"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+]
+dev = [
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["ro"]
+
+[tool.setuptools.package-data]
+ro = ["scripts/*"]
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.8",
+]
+
+
