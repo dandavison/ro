@@ -27,8 +27,21 @@ from pathlib import Path
 
 HISTORY_FILE = Path.home() / ".ro_history"
 
-# macOS sandbox policy: allow everything except file writes
-SANDBOX_POLICY = "(version 1)(allow default)(deny file-write*)"
+# macOS sandbox policy: allow everything except file writes to user directories
+# Must allow: /dev/null, /dev/tty, PTY devices, /tmp for basic shell operation
+SANDBOX_POLICY = """
+(version 1)
+(allow default)
+(deny file-write*
+    (subpath "/Users")
+)
+(allow file-write*
+    (subpath "/dev")
+    (subpath "/tmp")
+    (subpath "/private/tmp")
+    (subpath "/var/folders")
+)
+""".strip()
 
 
 def main() -> None:
