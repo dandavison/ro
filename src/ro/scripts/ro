@@ -27,9 +27,10 @@ from pathlib import Path
 
 HISTORY_FILE = Path.home() / ".ro_history"
 
-# macOS sandbox policy: allow everything except file writes to user directories
+# macOS sandbox policy template: allow everything except file writes to user directories
 # Must allow: /dev/null, /dev/tty, PTY devices, /tmp for basic shell operation
-SANDBOX_POLICY = """
+# Also allow: atuin database writes
+SANDBOX_POLICY_TEMPLATE = """
 (version 1)
 (allow default)
 (deny file-write*
@@ -40,8 +41,9 @@ SANDBOX_POLICY = """
     (subpath "/tmp")
     (subpath "/private/tmp")
     (subpath "/var/folders")
+    (subpath "{home}/.local/share/atuin")
 )
-""".strip()
+"""
 
 
 def main() -> None:
@@ -51,6 +53,7 @@ def main() -> None:
 
     initial_query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else ""
     shell = os.environ.get("SHELL", "/bin/zsh")
+    sandbox_policy = SANDBOX_POLICY_TEMPLATE.format(home=Path.home()).strip()
 
     # Split window: create shell pane above (90% of height)
     # -b: create pane before (above) current
@@ -61,7 +64,7 @@ def main() -> None:
     output_pane = subprocess.check_output(
         [
             "tmux", "split-window", "-b", "-l", "90%", "-P", "-F", "#{pane_id}",
-            "sandbox-exec", "-p", SANDBOX_POLICY, shell, "-i",
+            "sandbox-exec", "-p", sandbox_policy, shell, "-i",
         ],
         text=True,
     ).strip()
@@ -78,6 +81,12 @@ def main() -> None:
         f"tmux send-keys -t {output_pane} Enter"
     )
 
+    # Command for initial startup - includes delay to let shell fully initialize
+    # (zshrc sourcing takes time, and prompt setup needs to complete)
+    start_cmd = (
+        f"sleep 0.3 && {send_cmd}"
+    )
+
     fzf_cmd = [
         "fzf",
         "--disabled",
@@ -88,7 +97,8 @@ def main() -> None:
         "--prompt", "$ ",
         "--ansi",
         # Execute command in shell pane on start and on each change
-        "--bind", f"start:execute-silent:{send_cmd}",
+        # start uses delay to let shell fully initialize (zshrc sourcing)
+        "--bind", f"start:execute-silent:{start_cmd}",
         "--bind", f"change:execute-silent:{send_cmd}",
         # History
         "--history", str(HISTORY_FILE),
