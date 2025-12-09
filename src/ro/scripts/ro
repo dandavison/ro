@@ -11,8 +11,7 @@ since commands execute on every keystroke.
 Usage: ro [initial command]
 
 Key bindings:
-  Enter       - Exit (kills the shell pane)
-  Ctrl-C/Esc  - Abort
+  Ctrl-C/Esc  - Exit
   Alt-Up/Down - Navigate history
   Ctrl-K      - Clear to end of line
   Ctrl-U      - Clear to start of line
@@ -104,6 +103,8 @@ def main() -> None:
         # start uses delay to let shell fully initialize (zshrc sourcing)
         "--bind", f"start:execute-silent:{start_cmd}",
         "--bind", f"change:execute-silent:{send_cmd}",
+        # Enter is a no-op (use Ctrl-C or Esc to exit)
+        "--bind", "enter:ignore",
         # History
         "--history", str(HISTORY_FILE),
         "--bind", "alt-up:prev-history",
