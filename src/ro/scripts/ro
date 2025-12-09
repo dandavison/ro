@@ -82,9 +82,9 @@ def main() -> None:
     )
 
     # Command for initial startup - includes delay to let shell fully initialize
-    # (zshrc sourcing takes time, and prompt setup needs to complete)
+    # (zshrc sourcing takes time, prompt setup and alias definitions need to complete)
     start_cmd = (
-        f"sleep 0.3 && {send_cmd}"
+        f"sleep 0.5 && {send_cmd}"
     )
 
     fzf_cmd = [
