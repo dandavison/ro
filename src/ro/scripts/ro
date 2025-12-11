@@ -69,15 +69,17 @@ def main() -> None:
     ).strip()
 
     # Command to send to the shell pane on each change:
-    # C-c: interrupt any running command
-    # C-u: clear the input line
-    # C-l: clear the screen
-    # -l {q}: send query literally (handles special chars)
-    # Enter: execute
+    # First check if shell is at prompt (not running a pager/editor)
+    # Only send if foreground process is the shell itself
+    # This prevents typing from disrupting less, vim, etc.
+    shell_name = os.path.basename(shell)  # e.g., "zsh" from "/opt/homebrew/bin/zsh"
     send_cmd = (
+        f"fg=$(tmux display-message -t {output_pane} -p '#{{pane_current_command}}'); "
+        f"if [ \"$fg\" = \"{shell_name}\" ] || [ \"$fg\" = \"sandbox-exec\" ]; then "
         f"tmux send-keys -t {output_pane} C-c C-u C-l && "
         f"tmux send-keys -t {output_pane} -l {{q}} && "
-        f"tmux send-keys -t {output_pane} Enter"
+        f"tmux send-keys -t {output_pane} Enter; "
+        f"fi"
     )
 
     # Command for initial startup - includes delay to let shell fully initialize
