@@ -62,7 +62,7 @@ def main() -> None:
     # Shell needs -i (interactive) to source zshrc/bashrc
     output_pane = subprocess.check_output(
         [
-            "tmux", "split-window", "-b", "-l", "94%", "-P", "-F", "#{pane_id}",
+            "tmux", "split-window", "-d", "-b", "-l", "94%", "-P", "-F", "#{pane_id}",
             "sandbox-exec", "-p", sandbox_policy, shell, "-i",
         ],
         text=True,
