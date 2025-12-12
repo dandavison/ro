@@ -12,10 +12,8 @@ Usage: ro [initial command]
 
 Key bindings:
   Ctrl-C/Esc  - Exit
-  Alt-Up/Down - Navigate history
-  Ctrl-K      - Clear to end of line
-  Ctrl-U      - Clear to start of line
-  Ctrl-W      - Delete word backward
+  Up/Down     - Navigate history
+  Ctrl-U      - Clear line
 """
 
 import os
@@ -107,8 +105,8 @@ def main() -> None:
         "--bind", "enter:ignore",
         # History
         "--history", str(HISTORY_FILE),
-        "--bind", "alt-up:prev-history",
-        "--bind", "alt-down:next-history",
+        "--bind", "up:prev-history",
+        "--bind", "down:next-history",
         # Line editing
         "--bind", "ctrl-k:kill-line",
         "--bind", "ctrl-u:unix-line-discard",
