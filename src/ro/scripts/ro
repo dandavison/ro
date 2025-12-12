@@ -62,7 +62,7 @@ def main() -> None:
     # Shell needs -i (interactive) to source zshrc/bashrc
     output_pane = subprocess.check_output(
         [
-            "tmux", "split-window", "-b", "-l", "90%", "-P", "-F", "#{pane_id}",
+            "tmux", "split-window", "-b", "-l", "94%", "-P", "-F", "#{pane_id}",
             "sandbox-exec", "-p", sandbox_policy, shell, "-i",
         ],
         text=True,
@@ -122,7 +122,7 @@ def main() -> None:
 
     try:
         fzf_cmd_str = " ".join(shlex.quote(arg) for arg in fzf_cmd)
-        subprocess.call(f'echo "" | {fzf_cmd_str}', shell=True, executable="/bin/bash")
+        subprocess.call(f': | {fzf_cmd_str}', shell=True, executable="/bin/bash")
     finally:
         # Kill the shell pane we created
         subprocess.run(["tmux", "kill-pane", "-t", output_pane], check=False)
